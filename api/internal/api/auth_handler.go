@@ -16,6 +16,7 @@ type APIHandler struct {
     DB *sql.DB
 }
 
+// reference: https://github.com/nextauthjs/next-auth/blob/main/packages/adapter-pg/src/index.ts
 
 func (api *APIHandler) CreateVerificationTokenHandler(w http.ResponseWriter, r *http.Request) {
     // Parse request body
