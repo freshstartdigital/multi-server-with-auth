@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -171,6 +172,7 @@ func (api *APIHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request)
     var user models.User
     err := json.NewDecoder(r.Body).Decode(&user)
     if err != nil {
+        log.Println("error UpdateUserHandler", err)
         http.Error(w, err.Error(), http.StatusBadRequest)
         return
     }
@@ -178,6 +180,7 @@ func (api *APIHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request)
     // Call the repository function
     updatedUser, err := repository.UpdateUser(api.DB, user)
     if err != nil {
+        log.Println("error UpdateUserHandler 2", err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
@@ -222,6 +225,7 @@ func (api *APIHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Reque
     // Call the repository function
     newSession, err := repository.CreateSession(api.DB, session)
     if err != nil {
+        log.Println("error CreateSessionHandler", err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
@@ -240,6 +244,7 @@ func (api *APIHandler) GetSessionAndUserHandler(w http.ResponseWriter, r *http.R
     sessionToken := vars["id"]
 
     if sessionToken == "" {
+
         http.Error(w, "Session token is required", http.StatusBadRequest)
         return
     }
@@ -247,6 +252,7 @@ func (api *APIHandler) GetSessionAndUserHandler(w http.ResponseWriter, r *http.R
     // Call the repository function
     session, user, err := repository.GetSessionAndUser(api.DB, sessionToken)
     if err != nil {
+        log.Println("error GetSessionAndUserHandler", err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }

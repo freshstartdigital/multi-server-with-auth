@@ -2,7 +2,10 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
+
 	"log"
+	"strings"
 
 	"example.com/internal/models"
 )
@@ -103,30 +106,47 @@ func GetUserByAccount(db *sql.DB, providerAccountId, provider string) (*models.U
 }
 
 func UpdateUser(db *sql.DB, user models.User) (models.User, error) {
-	const fetchSQL =  `select * from users where id = $1`
-	const updateSQL = `
-	UPDATE users set
-	name = $2, email = $3, "emailVerified" = $4, image = $5
-	where id = $1
-	RETURNING name, id, email, "emailVerified", image
-	`
+    var setParts []string
+    var args []interface{}
 
-	// Fetch the user from the database
-	row := db.QueryRow(fetchSQL, user.ID)
-	var existingUser models.User
-	err := row.Scan(&existingUser.ID, &existingUser.Name, &existingUser.Email, &existingUser.EmailVerified, &existingUser.Image)
-	if err != nil {
-		return models.User{}, err
-	}
+    argIndex := 1
+    if user.Name != "" {
+        setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
+        args = append(args, user.Name)
+        argIndex++
+    }
+    if user.Email != "" {
+        setParts = append(setParts, fmt.Sprintf("email = $%d", argIndex))
+        args = append(args, user.Email)
+        argIndex++
+    }
+    if !user.EmailVerified.IsZero() {
+        setParts = append(setParts, fmt.Sprintf(`"emailVerified" = $%d`, argIndex))
+        args = append(args, user.EmailVerified)
+        argIndex++
+    }
+    if user.Image != "" {
+        setParts = append(setParts, fmt.Sprintf("image = $%d", argIndex))
+        args = append(args, user.Image)
+        argIndex++
+    }
 
-	// Update the user
-	row = db.QueryRow(updateSQL, user.ID, user.Name, user.Email, user.EmailVerified, user.Image)
-	err = row.Scan(&user.Name, &user.ID, &user.Email, &user.EmailVerified, &user.Image)
-	if err != nil {
-		return models.User{}, err
-	}
-	return user, nil
+    if len(setParts) == 0 {
+        return user, nil // or return an error if you prefer
+    }
 
+    args = append(args, user.ID)
+    setClause := strings.Join(setParts, ", ")
+    query := fmt.Sprintf(`UPDATE users SET %s WHERE id = $%d RETURNING id, name, email, "emailVerified", image`, setClause, argIndex)
+
+    row := db.QueryRow(query, args...)
+    var updatedUser models.User
+    err := row.Scan(&updatedUser.ID, &updatedUser.Name, &updatedUser.Email, &updatedUser.EmailVerified, &updatedUser.Image)
+    if err != nil {
+        return models.User{}, err
+    }
+
+    return updatedUser, nil
 }
 
 func LinkAccount(db *sql.DB, account models.Account) (models.Account, error) {
@@ -176,6 +196,7 @@ func CreateSession(db *sql.DB, session models.Session) (models.Session, error) {
 	row := db.QueryRow(sql, session.UserID, session.Expires, session.SessionToken)
 	err := row.Scan(&session.ID, &session.SessionToken, &session.UserID, &session.Expires)
 	if err != nil {
+		log.Panicln("create session error", err)
 		return models.Session{}, err
 	}
 
@@ -189,8 +210,9 @@ func GetSessionAndUser(db *sql.DB, sessionToken string) (models.Session, models.
 
 	row := db.QueryRow(session_sql, sessionToken)
 	var session models.Session
-	err := row.Scan(&session.ID, &session.SessionToken, &session.UserID, &session.Expires)
+	err := row.Scan(&session.ID, &session.UserID, &session.Expires, &session.SessionToken)
 	if err != nil {
+		log.Println("error GetSessionAndUser session", err)
 		return models.Session{}, models.User{}, err
 	}
 
@@ -198,6 +220,7 @@ func GetSessionAndUser(db *sql.DB, sessionToken string) (models.Session, models.
 	var user models.User
 	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.EmailVerified, &user.Image)
 	if err != nil {
+		log.Println("error GetSessionAndUser user", err)
 		return models.Session{}, models.User{}, err
 	}
 
@@ -236,6 +259,7 @@ func DeleteSession(db *sql.DB, sessionToken string) error {
 	const sql = `delete from sessions where "sessionToken" = $1`
 	_, err := db.Exec(sql, sessionToken)
 	if err != nil {
+		log.Println("error DeleteSession", err)
 		return err
 	}
 	return nil

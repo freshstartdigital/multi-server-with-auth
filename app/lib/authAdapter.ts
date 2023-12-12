@@ -1,13 +1,14 @@
 
-import type { Adapter } from "next-auth/adapters"
+import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters"
 
-export function mapExpiresAt(account: any): any {
-  const expires_at: number = parseInt(account.expires_at)
+export function mapExpiresAt(account: AdapterAccount): AdapterAccount {
+  const expires_at: number = parseInt(account.expires_at as unknown as string)
   return {
     ...account,
     expires_at,
   }
 }
+
 
 
 export default function MyAdapter(): Adapter {
@@ -26,13 +27,14 @@ export default function MyAdapter(): Adapter {
 
       },
       async getUser(id) {
+ 
         const response = await fetch(`${apiBase}/user/${id}`)
         const data = await response.json()
         return data
         
       },
       async getUserByEmail(email) {
-  
+
         const response = await fetch(`${apiBase}/user/email/${email}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -53,20 +55,31 @@ export default function MyAdapter(): Adapter {
         
       },
       async getUserByAccount({ providerAccountId, provider }) {
+    
         const response = await fetch(`${apiBase}/user/account/${provider}/${providerAccountId}`)
         const data = await response.json()
         return data
 
       },
+
       async updateUser(user) {
-        const response = await fetch(`${apiBase}/user/${user.id}`, {
+    
+        const response = await fetch(`${apiBase}/user`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(user),
             })
+
+            if (!response.ok) {
+              const data = await response.text()
+              console.log("updateUser error", data)
+              return null
+            }
         const data = await response.json()
+        
         return data
       },
+
       async deleteUser(userId) {
         const response = await fetch(`${apiBase}/user/${userId}`, {
             method: 'DELETE',
@@ -75,13 +88,17 @@ export default function MyAdapter(): Adapter {
         return data
       },
       async linkAccount(account) {
+
         const response = await fetch(`${apiBase}/link`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(account),
             })
         const data = await response.json()
-        return mapExpiresAt(data)
+
+        const res = mapExpiresAt(data)
+    
+        return res
       },
       async unlinkAccount({ providerAccountId, provider }) {
         const response = await fetch(`${apiBase}/link`, {
@@ -94,20 +111,51 @@ export default function MyAdapter(): Adapter {
         return data
       },
       async createSession({ sessionToken, userId, expires }) {
+        console.log("createSession", sessionToken, userId, expires)
         const response = await fetch(`${apiBase}/session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionToken, userId, expires }),
             })
+        console.log("createSession response", response)
+        if (!response.ok) {
+          const data = await response.text()
+          console.log("createSession error", data)
+          return null
+        }
         const data = await response.json()
-        return data
+
+        const res = {
+          ...data,
+          expires: new Date(data.expires)
+        }
+
+        console.log("createSession res", res)
+   
+        return res
       },
       async getSessionAndUser(sessionToken) {
+       
         const response = await fetch(`${apiBase}/session/${sessionToken}`)
+        
+        if (!response.ok) {
+          const data = await response.text()
+          console.log("getSessionAndUser error", data)
+          return null
+        }
+        
         const data = await response.json()
-        return data
+        const res = {
+          ...data,
+          session: { 
+            ...data.session,
+            expires: new Date(data.session.expires)
+          }
+        }
+        return res
       },
       async updateSession({ sessionToken }) {
+      
         const response = await fetch(`${apiBase}/session`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -118,13 +166,21 @@ export default function MyAdapter(): Adapter {
         return data
       },
       async deleteSession(sessionToken) {
+        
         const response = await fetch(`${apiBase}/session/${sessionToken}`, {
             method: 'DELETE',
             })
+            if (!response.ok) {
+              const data = await response.text()
+              console.log("deleteSession error", data)
+              return null
+            }
         const data = await response.json()
+
         return data
       },
       async createVerificationToken({ identifier, expires, token }) {
+        
         const response = await fetch(`${apiBase}/verification-token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -134,12 +190,21 @@ export default function MyAdapter(): Adapter {
         return data
       },
       async useVerificationToken({ identifier, token }) {
+        
         const response = await fetch(`${apiBase}/verification-token`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ identifier, token }),
             })
+
+            if (!response.ok) {
+              const data = await response.text()
+              console.log("useVerificationToken error", data)
+              return null
+            }
+
         const data = await response.json()
+
         return data
       },
     }
