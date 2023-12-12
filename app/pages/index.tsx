@@ -18,13 +18,10 @@ const Home: NextPage<HomePageLayoutProps> = (props) => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <HomePageLayout {...props} />
+      <HomePageLayout/>
     </>
   )
 }
 
 export default Home
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  return new Ssr(context).getHomePageLayoutProps()
-}

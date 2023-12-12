@@ -8,6 +8,7 @@ import (
 
 	"example.com/internal/models"
 	"example.com/internal/repository"
+	"github.com/gorilla/mux"
 )
 
 type APIHandler struct {
@@ -83,7 +84,8 @@ func (api *APIHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request)
 
 func (api *APIHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
     // Get ID from query parameters
-    id := r.URL.Query().Get("id")
+    vars := mux.Vars(r)
+    id := vars["id"]
     if id == "" {
         http.Error(w, "ID is required", http.StatusBadRequest)
         return
@@ -118,8 +120,8 @@ func (api *APIHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func (api *APIHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
-    // Get email from query parameters
-    email := r.URL.Query().Get("email")
+    vars := mux.Vars(r)
+    email := vars["email"]
     if email == "" {
         http.Error(w, "Email is required", http.StatusBadRequest)
         return
@@ -129,10 +131,6 @@ func (api *APIHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Requ
     user, err := repository.GetUserByEmail(api.DB, email)
     if err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    if user == nil {
-        http.Error(w, "User not found", http.StatusNotFound)
         return
     }
 
@@ -238,7 +236,9 @@ func (api *APIHandler) CreateSessionHandler(w http.ResponseWriter, r *http.Reque
 
 func (api *APIHandler) GetSessionAndUserHandler(w http.ResponseWriter, r *http.Request) {
     // Get sessionToken from query parameters
-    sessionToken := r.URL.Query().Get("id")
+    vars := mux.Vars(r)
+    sessionToken := vars["id"]
+
     if sessionToken == "" {
         http.Error(w, "Session token is required", http.StatusBadRequest)
         return
@@ -305,7 +305,9 @@ func (api *APIHandler) UnlinkAccountHandler(w http.ResponseWriter, r *http.Reque
 
 func (api *APIHandler) DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
     // Get sessionToken from query parameters
-    sessionToken := r.URL.Query().Get("id")
+    vars := mux.Vars(r)
+    sessionToken := vars["id"]
+
     if sessionToken == "" {
         http.Error(w, "Session token is required", http.StatusBadRequest)
         return

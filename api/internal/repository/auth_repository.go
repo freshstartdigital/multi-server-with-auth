@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"log"
 
 	"example.com/internal/models"
 )
@@ -65,18 +66,25 @@ func GetUser(db *sql.DB, id int) (*models.User, error) {
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
-	const sql = `
-	SELECT * FROM users WHERE email = $1
-	`
-	row := db.QueryRow(sql, email)
-	var user models.User
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.EmailVerified, &user.Image)
-	if err != nil {
+    const sqlQuery = `
+    SELECT * FROM users WHERE email = $1
+    `
+    row := db.QueryRow(sqlQuery, email)
 
-		return nil, err
-	}
-	return &user, nil
+    var user models.User
+    err := row.Scan(&user.ID, &user.Name, &user.Email, &user.EmailVerified, &user.Image)
+
+    if err != nil {
+        if err == sql.ErrNoRows {
+            // No user was found, return nil user and no error
+            return nil, nil
+        }
+        log.Println(err)
+        return nil, err // An error occurred during the query execution
+    }
+    return &user, nil
 }
+
 
 func GetUserByAccount(db *sql.DB, providerAccountId, provider string) (*models.User, error) {
 	const sql = `

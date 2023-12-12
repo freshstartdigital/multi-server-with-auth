@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"log"
+	"net/http"
 
 	"github.com/gorilla/mux"
 )
@@ -21,6 +22,11 @@ func NewRouter() *mux.Router {
     apiHandler := &APIHandler{DB: db}
 
 	// Register the API handlers
+
+    //hello world
+    router.HandleFunc(("/"), func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("Hello World!"))
+    }).Methods("GET")
 
 
     // Auth handlers
