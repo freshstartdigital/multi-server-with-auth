@@ -1,5 +1,3 @@
-\set ON_ERROR_STOP true
-
 CREATE TABLE verification_token
 (
   identifier TEXT NOT NULL,
